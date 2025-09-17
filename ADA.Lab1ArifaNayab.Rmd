@@ -1,0 +1,167 @@
+---
+title: "C1Survey"
+author: "Arifa Nayab"
+date: "2025-09-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+
+
+```{r, chunk7, message=FALSE}
+C1Survey <-
+ read_csv(
+   "https://github.com/kijohnson/Advanced-Data-Analysis/raw/refs/heads/main/Class%201%20Survey%20Fall%202025%202.csv"
+   )
+```
+
+
+```{r}
+View(C1Survey)
+```
+
+```{r, chunk16}
+dim(C1Survey) 
+```
+# 3a. renaming the columns 
+```{r}
+C1Survey <-C1Survey %>%
+ rename_with (~ c("id", "like_cats", "like_dogs", "have_desert", "slogan", "fav_day",
+"larkORowl", "fav_food", "fav_drink", "fav_season", "fav_month",
+"hobby", "program", "specialization", "stat_software", "R_exp",
+"coding_comfort", "coding_length", "top_three", "public_health_interest",
+"fav_num", "bday", "bmonth", "country", "state", "city",
+"highest_educ_level"),
+.cols = 1:27)
+
+#dispaly renamed columns
+C1Survey %>% select(bday, bmonth, fav_num, like_cats, like_dogs, fav_season, fav_day, larkORowl) %>% glimpse()
+```
+#4. Determine and dispaly number of factor, integer, numeric and character
+
+```{r}
+var_classes <- sapply(C1Survey, class)
+
+cat("Number of factor variables:   ", sum(var_classes == "factor"), "\n")
+cat("Number of integer variables: ", sum(var_classes == "integer"), "\n")
+cat("Number of numeric variables: ", sum(var_classes == "numeric"), "\n")
+cat("Number of character variables:", sum(var_classes == "character"), "\n")
+```
+```{r}
+# Check distribution of bday
+table(C1Survey$bday, useNA = "ifany")
+
+# Check distribution of bmonth
+table(C1Survey$bmonth, useNA = "ifany")
+```
+
+#inconsistancies in how the data is entered.  
+
+```{r}
+# Unusual values in bday (should be 1–31)
+unusual_bday <- C1Survey$bday[!is.na(C1Survey$bday) & !(C1Survey$bday %in% 1:31)]
+unique(unusual_bday)
+
+# Unusual values in bmonth (should be 1–12)
+unusual_bmonth <- C1Survey$bmonth[!is.na(C1Survey$bmonth) & !(C1Survey$bmonth %in% 1:12)]
+unique(unusual_bmonth)
+```
+#Values for bday that don't fall between 1-31 and bmonth between 1-12 will be converted to NA using the following code.
+```{r}
+# Force bday and bmonth into numeric
+C1Survey$bday   <- as.numeric(C1Survey$bday)
+C1Survey$bmonth <- as.numeric(C1Survey$bmonth)
+
+# Replace invalid values with NA
+C1Survey$bday[!(C1Survey$bday %in% 1:31)]     <- NA
+C1Survey$bmonth[!(C1Survey$bmonth %in% 1:12)] <- NA
+```
+
+#median birthday
+```{r}
+median(C1Survey$bday, na.rm = TRUE)
+```
+#median Birth Month 
+```{r}
+median(C1Survey$bmonth, na.rm = TRUE)
+```
+# 6a. Create bseason, cross-check with bmonth, and sum columns
+
+# Northern Meteorological seasons by MONTH
+# winter = Dec–Feb (12,1,2), spring = Mar–May (3–5), summer = Jun–Aug (6–8), fall = Sep–Nov (9–11)
+```{r}
+C1Survey <- C1Survey %>%
+  mutate(
+    bseason = case_when(
+      bmonth %in% c(12, 1, 2)  ~ "Winter",
+      bmonth %in% 3:5          ~ "Spring",
+      bmonth %in% 6:8          ~ "Summer",
+      bmonth %in% 9:11         ~ "Fall",
+      TRUE                     ~ NA_character_
+    )
+  )
+
+```
+
+
+# b) Table of Seasons in columns and bmonths in rows
+```{r}
+tab_bmonth_bseason <- table(bmonth = Data1_csv$bmonth,
+                            bseason = Data1_csv$bseason,
+                            useNA = "ifany")
+tab_bmonth_bseason
+```
+# c) Sum the columns with addmargins to answer "How many classmates were born in each season?"
+
+```{r}
+
+season_counts <- addmargins(tab_bmonth_bseason, margin = 2)  # margin=2 sums columns
+season_counts
+
+# Extract just the season totals row (the "Sum") for a clean printed answer
+if ("Sum" %in% rownames(season_counts)) {
+  totals <- season_counts["Sum", , drop = TRUE]
+} else {
+  # Fallback in case addmargins presents differently by R version
+  totals <- colSums(tab_bmonth_bseason, na.rm = TRUE)
+}
+
+cat("\nNumber of classmates born in each season:\n")
+print(totals)
+```
+# 7. Are there more cat lovers or Dog lovers in ADA class 
+
+```{r}
+cat_count <- sum(C1Survey$like_cats == "Yes", na.rm = TRUE)
+dog_count <- sum(C1Survey$like_dogs == "Yes", na.rm = TRUE)
+
+if (cat_count > dog_count) {
+  print("More cat lovers 🐱")
+} else if (dog_count > cat_count) {
+  print("More dog lovers 🐶")
+} else {
+  print("Equal number of cat and dog lovers!")
+}
+
+```
+#plot data of god lovers 
+
+```{r}
+C1Survey %>%
+  filter(!is.na(fav_num)) %>%
+  ggplot(aes(x = like_dogs, y = fav_num)) +
+  geom_boxplot() +
+  labs(title = "Favorite Number by Like_dogs Group",
+       x = "like_dogs",
+       y = "fav_num")
+```
+
+
+
